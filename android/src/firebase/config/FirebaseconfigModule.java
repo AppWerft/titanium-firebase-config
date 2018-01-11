@@ -10,6 +10,7 @@ package firebase.config;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.appcelerator.kroll.KrollDict;
 import org.appcelerator.kroll.KrollFunction;
@@ -18,19 +19,16 @@ import org.appcelerator.kroll.annotations.Kroll;
 import org.appcelerator.kroll.common.Log;
 import org.appcelerator.kroll.common.TiConfig;
 import org.appcelerator.titanium.TiApplication;
-import android.support.annotation.NonNull;
+
 import android.app.Activity;
+import android.support.annotation.NonNull;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig;
+import com.google.firebase.remoteconfig.FirebaseRemoteConfigInfo;
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings;
-
-
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
-import com.google.firebase.remoteconfig.FirebaseRemoteConfig;
-import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings;
+import com.google.firebase.remoteconfig.FirebaseRemoteConfigValue;
 
 @Kroll.module(name = "Firebaseconfig", id = "firebase.config")
 public class FirebaseconfigModule extends KrollModule {
@@ -40,22 +38,22 @@ public class FirebaseconfigModule extends KrollModule {
 	private static final boolean DBG = TiConfig.LOGD;
 	private static FirebaseRemoteConfig firebaseRemoteConfig;
 	private KrollFunction onLoad = null;
-	
+
 	// You can define constants with @Kroll.constant, for example:
 	@Kroll.constant
-	public static final int FETCH_STATUS_NO_FETCH_YET = 0;
+	public static final int FETCH_STATUS_NO_FETCH_YET = FirebaseRemoteConfig.LAST_FETCH_STATUS_NO_FETCH_YET;
 	@Kroll.constant
-	public static final int FETCH_STATUS_SUCCESS = 1;
+	public static final int FETCH_STATUS_SUCCESS = FirebaseRemoteConfig.LAST_FETCH_STATUS_SUCCESS;
 	@Kroll.constant
-	public static final int FETCH_STATUS_FAILURE = 2;
+	public static final int FETCH_STATUS_FAILURE = FirebaseRemoteConfig.LAST_FETCH_STATUS_FAILURE;
 	@Kroll.constant
-	public static final int FETCH_STATUS_THROTTLED = 3;
+	public static final int FETCH_STATUS_THROTTLED = FirebaseRemoteConfig.LAST_FETCH_STATUS_THROTTLED;
 	@Kroll.constant
-	public static final int SOURCE_REMOTE = 10;
+	public static final int SOURCE_REMOTE =  FirebaseRemoteConfig.VALUE_SOURCE_REMOTE;
 	@Kroll.constant
-	public static final int SOURCE_DEFAULT = 11;
+	public static final int SOURCE_DEFAULT =  FirebaseRemoteConfig.VALUE_SOURCE_DEFAULT;
 	@Kroll.constant
-	public static final int SOURCE_STATIC = 12;
+	public static final int SOURCE_STATIC =  FirebaseRemoteConfig.VALUE_SOURCE_STATIC;
 
 	public FirebaseconfigModule() {
 		super();
@@ -65,65 +63,143 @@ public class FirebaseconfigModule extends KrollModule {
 	public static void onAppCreate(TiApplication app) {
 		Log.d(LCAT, "inside onAppCreate");
 		firebaseRemoteConfig = FirebaseRemoteConfig.getInstance();
-		
+
 	}
 
 	@Kroll.method
-	public void setDeveloperModeEnabled() {
+	public void enableDeveloperMode() {
 		FirebaseRemoteConfigSettings configSettings = new FirebaseRemoteConfigSettings.Builder()
-        .setDeveloperModeEnabled(BuildConfig.DEBUG)
-        .build();
-firebaseRemoteConfig.setConfigSettings(configSettings);
+				.setDeveloperModeEnabled(true).build();
+		firebaseRemoteConfig.setConfigSettings(configSettings);
 	}
-	
+
+	@Kroll.method
+	public void disableDeveloperMode() {
+		FirebaseRemoteConfigSettings configSettings = new FirebaseRemoteConfigSettings.Builder()
+				.setDeveloperModeEnabled(false).build();
+		firebaseRemoteConfig.setConfigSettings(configSettings);
+	}
+
 	@Kroll.method
 	public void activateFetched() {
 		firebaseRemoteConfig.activateFetched();
 	}
+
 	@Kroll.method
 	public void fetch(KrollDict props) {
-		
+
 		int expirationDuration = 0;
 		if (props.containsKeyAndNotNull("load")) {
-			onLoad = (KrollFunction)props.get("load");
+			onLoad = (KrollFunction) props.get("load");
 		}
 		if (props.containsKeyAndNotNull("expirationDuration")) {
 			expirationDuration = props.getInt("expirationDuration");
 		}
 		Activity activity = TiApplication.getAppRootOrCurrentActivity();
-		firebaseRemoteConfig.fetch().addOnCompleteListener(activity, new OnCompleteListener<Void>() {
-            @Override
-            public void onComplete(@NonNull Task<Void> task) {
-                if (task.isSuccessful() && onLoad !=  null) {
-                    onLoad.callAsync(getKrollObject(), new KrollDict());
-                    firebaseRemoteConfig.activateFetched();
-                } else {
-                   
-                }
-               
-            }
-        });
+		firebaseRemoteConfig.fetch().addOnCompleteListener(activity,
+				new OnCompleteListener<Void>() {
+					@Override
+					public void onComplete(@NonNull Task<Void> task) {
+						if (task.isSuccessful() && onLoad != null) {
+							onLoad.callAsync(getKrollObject(), new KrollDict());
+							firebaseRemoteConfig.activateFetched();
+						} else {
+
+						}
+
+					}
+				});
 	}
 
+	/*
+	 * iOS only
+	 * 
+	 * @Kroll.method public KrollDict objectForKeyedSubscript(String
+	 * keyedSubscript) {
+	 * 
+	 * KrollDict dict = new KrollDict(); return dict;
+	 * 
+	 * }
+	 * 
+	 * 
+	 * @Kroll.method public KrollDict configValueForKey(String key,
+	 * 
+	 * @Kroll.argument(optional = true) String nameSpace) { KrollDict dict = new
+	 * KrollDict(); return dict; }
+	 */
 	@Kroll.method
-	public KrollDict objectForKeyedSubscript(String keyedSubscript) {
-		KrollDict dict = new KrollDict();
-		return dict;
-
-	}
-
-	@Kroll.method
-	public KrollDict configValueForKey(String key,
+	public long getLong(String key,
 			@Kroll.argument(optional = true) String nameSpace) {
-		KrollDict dict = new KrollDict();
-		return dict;
+		return (nameSpace == null) ? firebaseRemoteConfig.getLong(key)
+				: firebaseRemoteConfig.getLong(key, nameSpace);
+
 	}
 
 	@Kroll.method
-	public Object[] allKeysFromSource(String key,
+	public String getString(String key,
 			@Kroll.argument(optional = true) String nameSpace) {
+		return (nameSpace == null) ? firebaseRemoteConfig.getString(key)
+				: firebaseRemoteConfig.getString(key, nameSpace);
+
+	}
+
+	@Kroll.method
+	public boolean getBoolean(String key,
+			@Kroll.argument(optional = true) String nameSpace) {
+		return (nameSpace == null) ? firebaseRemoteConfig.getBoolean(key)
+				: firebaseRemoteConfig.getBoolean(key, nameSpace);
+
+	}
+
+	@Kroll.method
+	public double getDouble(String key,
+			@Kroll.argument(optional = true) String nameSpace) {
+		return (nameSpace == null) ? firebaseRemoteConfig.getDouble(key)
+				: firebaseRemoteConfig.getDouble(key, nameSpace);
+
+	}
+
+	@Kroll.method
+	public String getInfo() {
+		FirebaseRemoteConfigInfo info;
+		KrollDict dict = new KrollDict();
+		info = firebaseRemoteConfig.getInfo();
+		return info.toString();
+
+	}
+
+	@Kroll.method
+	public String getValue(String key,
+			@Kroll.argument(optional = true) String nameSpace) {
+		return (nameSpace == null) ? firebaseRemoteConfig.getString(key)
+				: firebaseRemoteConfig.getString(key, nameSpace);
+
+	}
+
+	/*
+	 * @Kroll.method public Object[] allKeysFromSource(String key,
+	 * 
+	 * @Kroll.argument(optional = true) String nameSpace) { List<String> list =
+	 * new ArrayList(); return list.toArray(); }
+	 */
+
+	@Kroll.method
+	public Object[] getKeysByPrefix(String prefix,
+			@Kroll.argument(optional = true) String nameSpace) {
+		Set<String> result = (nameSpace != null) ? firebaseRemoteConfig
+				.getKeysByPrefix(prefix, nameSpace) : firebaseRemoteConfig
+				.getKeysByPrefix(prefix);
 		List<String> list = new ArrayList();
-		return list.toArray();
+		return result.toArray();
+	}
+
+	@Kroll.method
+	public int getSource(String prefix,
+			@Kroll.argument(optional = true) String nameSpace) {
+		FirebaseRemoteConfigValue value = (nameSpace != null) ? firebaseRemoteConfig
+				.getValue(prefix, nameSpace) : firebaseRemoteConfig
+				.getValue(prefix);
+		return value.getSource();
 	}
 
 	@Kroll.method
@@ -137,9 +213,8 @@ firebaseRemoteConfig.setConfigSettings(configSettings);
 			@Kroll.argument(optional = true) String nameSpace) {
 		firebaseRemoteConfig.setDefaults(defaults);
 	}
-
-	public KrollDict defaultValueForKey(String key) {
-		KrollDict dict = new KrollDict();
-		return dict;
-	}
+	/*
+	 * public KrollDict defaultValueForKey(String key) { KrollDict dict = new
+	 * KrollDict(); return dict; }
+	 */
 }
