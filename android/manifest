@@ -1,0 +1,18 @@
+#
+# this is your module manifest and used by Titanium
+# during compilation, packaging, distribution, etc.
+#
+version: 1.0.0
+apiversion: 4
+architectures: arm64-v8a armeabi-v7a x86
+description: firebaseconfig
+author: Rainer
+license: Specify your license
+copyright: Copyright (c) 2018 by Your Company
+
+# these should not be edited
+name: firebaseconfig
+moduleid: firebase.config
+guid: 472a8a71-2926-41f0-bd40-87d396b58a5e
+platform: android
+minsdk: 7.0.1.GA
