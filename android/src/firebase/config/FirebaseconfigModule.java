@@ -49,11 +49,11 @@ public class FirebaseconfigModule extends KrollModule {
 	@Kroll.constant
 	public static final int FETCH_STATUS_THROTTLED = FirebaseRemoteConfig.LAST_FETCH_STATUS_THROTTLED;
 	@Kroll.constant
-	public static final int SOURCE_REMOTE =  FirebaseRemoteConfig.VALUE_SOURCE_REMOTE;
+	public static final int SOURCE_REMOTE = FirebaseRemoteConfig.VALUE_SOURCE_REMOTE;
 	@Kroll.constant
-	public static final int SOURCE_DEFAULT =  FirebaseRemoteConfig.VALUE_SOURCE_DEFAULT;
+	public static final int SOURCE_DEFAULT = FirebaseRemoteConfig.VALUE_SOURCE_DEFAULT;
 	@Kroll.constant
-	public static final int SOURCE_STATIC =  FirebaseRemoteConfig.VALUE_SOURCE_STATIC;
+	public static final int SOURCE_STATIC = FirebaseRemoteConfig.VALUE_SOURCE_STATIC;
 
 	public FirebaseconfigModule() {
 		super();
@@ -209,10 +209,22 @@ public class FirebaseconfigModule extends KrollModule {
 		return list.toArray();
 	}
 
+	@Kroll.method
 	public void setDefaults(KrollDict defaults,
 			@Kroll.argument(optional = true) String nameSpace) {
 		firebaseRemoteConfig.setDefaults(defaults);
 	}
+
+	@Kroll.method
+	public long getLastFetchTime() {
+		return firebaseRemoteConfig.getInfo().getFetchTimeMillis();
+	}
+
+	@Kroll.method
+	public int getLastFetchStatus() {
+		return firebaseRemoteConfig.getInfo().getLastFetchStatus();
+	}
+
 	/*
 	 * public KrollDict defaultValueForKey(String key) { KrollDict dict = new
 	 * KrollDict(); return dict; }
